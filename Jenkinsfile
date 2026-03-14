@@ -24,8 +24,8 @@ pipeline {
                 script {
                     try {
                         sh '''
-                            find . -name "pom.xml" -exec sed -i 's/<source>1.6<\/source>/<source>1.8<\/source>/g' {} + || true
-                            find . -name "pom.xml" -exec sed -i 's/<target>1.6<\/target>/<target>1.8<\/target>/g' {} + || true
+                            find . -name "pom.xml" -exec sed -i 's/<source>1.6</source>/<source>1.8</source>/g' {} + || true
+                            find . -name "pom.xml" -exec sed -i 's/<target>1.6</target>/<target>1.8</target>/g' {} + || true
                         '''
                         sh 'mvn clean test'
                         echo "initial build and test passed."
