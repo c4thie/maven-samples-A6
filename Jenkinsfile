@@ -48,8 +48,8 @@ pipeline {
                         cat > bisect_test.sh <<'EOF'
 #!/bin/bash
 # Fix the Java version issue in pom.xml for the current commit
-find . -name "pom.xml" -exec sed -i 's/<source>1.6<\/source>/<source>1.8<\/source>/g' {} + || true
-find . -name "pom.xml" -exec sed -i 's/<target>1.6<\/target>/<target>1.8<\/target>/g' {} + || true
+find . -name "pom.xml" -exec sed -i 's/<source>1.6</source>/<source>1.8</source>/g' {} + || true
+find . -name "pom.xml" -exec sed -i 's/<target>1.6</target>/<target>1.8</target>/g' {} + || true
 
 # Run the actual tests
 mvn clean test
