@@ -49,22 +49,8 @@ pipeline {
                     sh '''
                         cat > bisect_test.sh <<'EOF'
 #!/bin/bash
-# Use Python to update Java version - more robust than sed across platforms
-python3 -c "
-import os
-for root, dirs, files in os.walk('.'):
-    for file in files:
-        if file == 'pom.xml':
-            path = os.path.join(root, file)
-            with open(path, 'r') as f:
-                content = f.read()
-            new_content = content.replace('<source>1.6</source>', '<source>1.8</source>')
-            new_content = new_content.replace('<target>1.6</target>', '<target>1.8</target>')
-            if content != new_content:
-                with open(path, 'w') as f:
-                    f.write(new_content)
-                print(f'Updated {path}')
-"
+# Use Perl to update Java version - perfectly consistent on Mac and Linux
+find . -name "pom.xml" -exec perl -pi -e 's/<source>1.6<\\/source>/<source>1.8<\\/source>/g; s/<target>1.6<\\/target>/<target>1.8<\\/target>/g' {} +
 
 mvn clean test
 exit $?
