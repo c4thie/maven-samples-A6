@@ -9,7 +9,7 @@ pipeline {
         string(name: 'BAD_COMMIT', defaultValue: '198644632661c67b6c32f59e9047c11a70685e15', description: 'bad commit hash')
     }
     stages {
-        stage('Checkout Source') {
+        stage('checkout') {
             steps {
                 script {
                     sh 'git clean -fdx || true'
@@ -23,15 +23,17 @@ pipeline {
             steps {
                 script {
                     try {
+                        // Apply Java version fix for initial build
                         sh '''
-                            find . -name "pom.xml" -exec sed -i 's/<source>1.6</source>/<source>1.8</source>/g' {} + || true
-                            find . -name "pom.xml" -exec sed -i 's/<target>1.6</target>/<target>1.8</target>/g' {} + || true
+                            find . -name 
+"pom.xml" -exec sed -i.bak \'s/<source>1.6<\\/source>/<source>1.8<\\/source>/g\' {} + || true
+                            find . -name "pom.xml" -exec sed -i.bak \'s/<target>1.6<\\/target>/<target>1.8<\\/target>/g\' {} + || true
                         '''
                         sh 'mvn clean test'
-                        echo "initial build and test passed."
+                        echo "build and test passed"
                         currentBuild.result = 'SUCCESS'
                     } catch (Exception e) {
-                        echo "initial build and test failed, need bisect."
+                        echo "initial build and test failed, needbisect"
                         currentBuild.result = 'UNSTABLE'
                     }
                 }
@@ -47,21 +49,35 @@ pipeline {
                     sh '''
                         cat > bisect_test.sh <<'EOF'
 #!/bin/bash
-# Fix the Java version issue in pom.xml for the current commit
-find . -name "pom.xml" -exec sed -i 's/<source>1.6</source>/<source>1.8</source>/g' {} + || true
-find . -name "pom.xml" -exec sed -i 's/<target>1.6</target>/<target>1.8</target>/g' {} + || true
+# Use Python to update Java version - more robust than sed across platforms
+python3 -c "
+import os
+for root, dirs, files in os.walk('.'):
+    for file in files:
+        if file == 'pom.xml':
+            path = os.path.join(root, file)
+            with open(path, 'r') as f:
+                content = f.read()
+            new_content = content.replace('<source>1.6</source>', '<source>1.8</source>')
+            new_content = new_content.replace('<target>1.6</target>', '<target>1.8</target>')
+            if content != new_content:
+                with open(path, 'w') as f:
+                    f.write(new_content)
+                print(f'Updated {path}')
+"
 
-# Run the actual tests
 mvn clean test
-
-# The exit code of mvn clean test will be returned to git bisect
 exit $?
 EOF
                     '''
                     sh 'chmod +x bisect_test.sh'
+
+                    // Run the bisect process
                     sh "git bisect reset || true"
                     sh "git bisect start ${params.BAD_COMMIT} ${params.GOOD_COMMIT}"
-                    sh "./bisect_test.sh"
+                    sh "git bisect run ./bisect_test.sh"
+                    
+                    // Final cleanup
                     sh "git bisect reset"
                 }
             }
